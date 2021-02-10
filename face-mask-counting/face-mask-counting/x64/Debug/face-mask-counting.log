@@ -1,2 +1,11 @@
-﻿  face-mask-counting.cpp
-  face-mask-counting.vcxproj -> C:\Users\omull\Desktop\College work\4th Year\CSU44099 - Final Year Project\FYP\face-mask-counting\x64\Debug\face-mask-counting.exe
+﻿  Landmarks.cpp
+  main.cpp
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\main.cpp(41,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\main.cpp(62,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  Utilities.cpp
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Utilities.cpp(17,23): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Utilities.cpp(20,19): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Utilities.cpp(21,19): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  Video.cpp
+  Generating Code...
+  face-mask-counting.vcxproj -> C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\x64\Debug\face-mask-counting.exe
