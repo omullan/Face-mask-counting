@@ -7,16 +7,7 @@
 int main(int argc, char* argv[])
 {
     String file_location = "Media/";
-    vector<cv::String> fn;
-    glob(file_location + "Ground Truth", fn, false);
-
-    vector<Mat> images;
-    size_t count = fn.size();
-
-    for (size_t i = 0; i < count; i++) {
-        images.push_back(imread(fn[i]));
-    }
-    VideoCapture capture(file_location + "front3.avi");
+    VideoCapture capture(file_location + "front2.avi");
     if (!capture.isOpened()) {
         //error in opening the video input
         cerr << "Unable to open" << endl;
@@ -24,7 +15,7 @@ int main(int argc, char* argv[])
     }
     // Load Haar Cascade(s)
     vector<CascadeClassifier> cascades;
-    String cascade_files[] = { "haarcascades/haarcascade_frontalface_alt.xml" };
+    String cascade_files[] = { "haarcascades/haarcascade_frontalface_alt2.xml" };
     int number_of_cascades = sizeof(cascade_files) / sizeof(cascade_files[0]);
     for (int cascade_file_no = 0; (cascade_file_no < number_of_cascades); cascade_file_no++)
     {
@@ -39,12 +30,12 @@ int main(int argc, char* argv[])
         else cascades.push_back(cascade);
     }
     int frameCount = capture.get(CAP_PROP_FRAME_COUNT);
-
-    Mat* frames = gaussianMixture(capture, cascades[0]);
+    run();
+    //Mat* frames = gaussianMixture(capture, cascades[0]);
     //runMedianBackground(capture, (float)1.005, 1, cascades[0]);
 }
 
-Mat haarFaceDetection(Mat image, CascadeClassifier cascade) {
+Mat videoFaceDetection(Mat image, CascadeClassifier cascade) {
     vector<Rect> faces;
     Mat gray;
     cvtColor(image, gray, COLOR_BGR2GRAY);
@@ -83,7 +74,7 @@ Mat* gaussianMixture(VideoCapture video, CascadeClassifier cascade) {
         frame.copyTo(foreground, cleanedImage);
 
         if (faceDetectCounter == 5 || firstFaceDetected) {
-            faceDetect = haarFaceDetection(foreground, cascade);
+            faceDetect = videoFaceDetection(foreground, cascade);
             faceDetectCounter = 0;
         }
 

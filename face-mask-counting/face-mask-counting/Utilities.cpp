@@ -65,3 +65,22 @@ Mat makeCanvas(std::vector<cv::Mat>& vecMat, int windowHeight, int nRows) {
 	}
 	return canvasImage;
 }
+
+// Code taken from Open Source meanshift_segmentation.cpp (widely available online)
+void floodFillPostprocess(Mat& img, const Scalar& colorDiff /* = Scalar::all(1)*/)
+{
+	CV_Assert(!img.empty());
+	RNG rng = theRNG();
+	Mat mask(img.rows + 2, img.cols + 2, CV_8UC1, Scalar::all(0));
+	for (int y = 0; y < img.rows; y++)
+	{
+		for (int x = 0; x < img.cols; x++)
+		{
+			if (mask.at<uchar>(y + 1, x + 1) == 0)
+			{
+				Scalar newVal(rng(256), rng(256), rng(256));
+				floodFill(img, mask, Point(x, y), newVal, 0, colorDiff, colorDiff);
+			}
+		}
+	}
+}

@@ -156,7 +156,7 @@ void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBi
 
 		String frameString = to_string(frameCount);
 		if (faceDetectCounter == 10) {
-			faceDetect = haarFaceDetection(medianForegroundImage, cascade);
+			faceDetect = videoFaceDetection(medianForegroundImage, cascade);
 			faceDetectCounter = 0;
 		}
 		vector<Mat> vec = { currentFrame, medianBackgroundImage, medianForegroundImage, faceDetect };
