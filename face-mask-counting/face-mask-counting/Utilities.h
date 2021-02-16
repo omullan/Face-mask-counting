@@ -24,3 +24,6 @@ void featureMatching(Mat trainImage);
 void floodFillPostprocess(Mat& img, const Scalar& colorDiff);
 Mat videoFaceDetection(Mat image, CascadeClassifier cascade);
 Mat backProject(Mat samples, Mat input);
+vector<double> countPixels(Mat skinPixels, Rect topHalfFace, Rect bottomHalfFace);
+Mat detectMaskedFaces(Mat image, CascadeClassifier cascades/*, Mat skinSamples*/);
+void writeVideoToFile(Mat* frames, String fileName, int fps, int width, int height, int noOfFrames);

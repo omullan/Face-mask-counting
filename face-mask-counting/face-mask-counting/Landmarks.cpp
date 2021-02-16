@@ -43,28 +43,96 @@ void run() {
         cascades.push_back(cascade);
     }
     
-    vector<Mat> detectedFaces;
     for (int i = 0; i < images.size(); i++) {
-        vector<Rect> faces;
-        cout << i + " : ";
-        Mat x = haarFaceDetection(images[i], cascades[0], faces);
-        Mat gray, clustered_image, colourThresholdSkin;
-        cvtColor(x, gray, COLOR_BGR2GRAY);
-        int countBlack = countNonZero(gray);
-        if (countBlack > 0) {
-            clustered_image = backProject(skinSamples, x);
-            threshold(clustered_image, clustered_image, 5, 255,THRESH_BINARY);
-            colourThresholdSkin = detectSkin(x);
-            vector<Mat> vec = { clustered_image, x , images[i], colourThresholdSkin };
-            Mat out = makeCanvas(vec, 600, 2);
-            imshow("", out);
-            char c = waitKey();
-        }
-        
-
+        detectMaskedFaces(images[i], cascades[0]/*, skinSamples */);
     }  
 }
 
+Mat detectMaskedFaces(Mat image, CascadeClassifier cascades/*, Mat skinSamples*/) {
+    vector<Rect> faces;
+    int width, height, x, y;
+    Mat haarImage = haarFaceDetection(image, cascades, faces);
+    if (faces.size() != 0) {
+        width = faces[0].width; height = faces[0].height; x = faces[0].x; y = faces[0].y;
+        Rect topHalfFace(x, y, width, height / 2);
+        Rect bottomHalfFace(x, y + (height / 2), width, height / 2);
+
+        Mat gray, backProjectedFace, colourThresholdSkin;
+        //backProjectedFace = backProject(skinSamples, haarImage);
+        //threshold(backProjectedFace, backProjectedFace, 5, 255, THRESH_BINARY);
+        colourThresholdSkin = detectSkin(haarImage);
+        vector<double> skinProbablities = countPixels(colourThresholdSkin, topHalfFace, bottomHalfFace);
+        String s;
+        if (skinProbablities[0] > 50 && skinProbablities[1] < 50) {
+            s = "Masked";
+        }
+        else if (skinProbablities[0] > 50 && skinProbablities[1] > 50) {
+            s = "Unmasked";
+        }
+        else {
+            s = "Unknown";
+        }
+        rectangle(image, faces[0], Scalar(0, 0, 255), 2);
+        putText(image, s, Point((faces[0].x + 20), (faces[0].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
+        vector<Mat> vec = {/* backProjectedFace ,*/ haarImage , image, colourThresholdSkin};
+        return image;
+    }
+}
+
+vector<double> countPixels(Mat skinPixels, Rect topHalfFace, Rect bottomHalfFace) {
+    Mat topFace = skinPixels(topHalfFace);
+    Mat bottomFace = skinPixels(bottomHalfFace);
+    double skinPixelsTop = ((double) countNonZero(topFace) / (double) topFace.total()) * 100.0;
+    double skinPixelsBottom = ((double) countNonZero(bottomFace) / (double) bottomFace.total()) * 100.0;
+    cout << "top: " + to_string(skinPixelsTop) + "%\n" ;
+    cout << "bottom: " + to_string(skinPixelsBottom) + "%\n";
+    vector<double> skinProbablities = { skinPixelsTop , skinPixelsBottom };
+    return skinProbablities;
+}
+
+Mat detectSkin(Mat input) {
+    //attempt at skin detection using YCrCb colour space
+    Mat image_YCrCb;
+    cvtColor(input, image_YCrCb, COLOR_BGR2YCrCb);
+    Mat mask, skinRegion;
+    inRange(image_YCrCb, Scalar(0,133,77), Scalar(255,173,127), mask);
+
+    input.copyTo(skinRegion, mask);
+    return mask;
+}
+
+Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect> &faces) {
+    if (faces.empty()) {
+        faces.clear();
+    }
+
+    Mat gray, interestArea;
+    cvtColor(image, gray, COLOR_BGR2GRAY);
+    equalizeHist(gray, gray);
+    cascade.detectMultiScale(gray, faces, 1.05, 3, cv::CASCADE_FIND_BIGGEST_OBJECT, Size(30, 30));
+    Mat mask = image.clone();
+    mask.setTo(cv::Scalar(0, 0, 0));
+    cout << faces.size() + "\n";
+    if (faces.size() != 0) {
+        Rect mostProminentFace = faces[0];
+        if (faces.size() > 1) {
+            for (int i = 1; i < faces.size(); i++) {
+                if ((faces[i].width + faces[i].height) > (faces[i - 1].width + faces[i - 1].height)) {
+                    mostProminentFace = faces[i];
+                }
+            }
+        }
+        for (int count = 0; count < (int)faces.size(); count++) {
+            rectangle(mask, mostProminentFace, cv::Scalar(255, 255, 255), cv::FILLED, 8, 0);
+        }
+        faces[0] = mostProminentFace;
+    }
+    
+    image.copyTo(interestArea, mask);
+    return interestArea;
+}
+
+/*
 void detectFacemarks(vector<Mat> images, vector<CascadeClassifier> cascades) {
     const string facemark_filename = "lbfmodel.yaml";
     Ptr<Facemark> facemark = createFacemarkLBF();
@@ -108,17 +176,6 @@ void faceDetector(const Mat& image, vector<Rect>& faces, CascadeClassifier& face
     face_cascade.detectMultiScale(gray, faces, 1.1, 2, cv::CASCADE_SCALE_IMAGE, Size(30, 30));
 }
 
-Mat detectSkin(Mat input) {
-    //attempt at skin detection using YCrCb colour space
-    Mat image_YCrCb;
-    cvtColor(input, image_YCrCb, COLOR_BGR2YCrCb);
-    Mat mask, skinRegion;
-    inRange(image_YCrCb, Scalar(0,133,77), Scalar(255,173,127), mask);
-
-    input.copyTo(skinRegion, mask);
-    return mask;
-}
-
 void featureMatching(Mat trainImage) {
     //surf implementation
     int minHessian = 400;
@@ -131,33 +188,4 @@ void featureMatching(Mat trainImage) {
     imshow("SURF Keypoints", img_keypoints);
     char c = waitKey();
 }
-
-Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect> &faces) {
-    if (faces.empty()) {
-        faces.clear();
-    }
-
-    Mat gray, interestArea;
-    cvtColor(image, gray, COLOR_BGR2GRAY);
-    equalizeHist(gray, gray);
-    cascade.detectMultiScale(gray, faces, 1.05, 3, cv::CASCADE_FIND_BIGGEST_OBJECT, Size(30, 30));
-    Mat mask = image.clone();
-    mask.setTo(cv::Scalar(0, 0, 0));
-    cout << faces.size() + "\n";
-    if (faces.size() != 0) {
-        Rect mostProminentFace = faces[0];
-        if (faces.size() > 1) {
-            for (int i = 1; i < faces.size(); i++) {
-                if ((faces[i].width + faces[i].height) > (faces[i - 1].width + faces[i - 1].height)) {
-                    mostProminentFace = faces[i];
-                }
-            }
-        }
-        for (int count = 0; count < (int)faces.size(); count++) {
-            rectangle(mask, mostProminentFace, cv::Scalar(255, 255, 255), cv::FILLED, 8, 0);
-        }
-    }
-    image.copyTo(interestArea, mask);
-    return interestArea;
-}
-
+*/

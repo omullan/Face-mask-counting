@@ -30,22 +30,15 @@ int main(int argc, char* argv[])
         else cascades.push_back(cascade);
     }
     int frameCount = capture.get(CAP_PROP_FRAME_COUNT);
-    run();
-    //Mat* frames = gaussianMixture(capture, cascades[0]);
+    //run();
+    Mat* frames = gaussianMixture(capture, cascades[0]);
+    writeVideoToFile(frames, "output2.avi", 30, 1044, 600, frameCount-5);
+    for (int i = 0; i < (capture.get(CAP_PROP_FRAME_COUNT) - 5); i++) {
+        imshow("", frames[i]);
+        char c = waitKey(10);
+    }
     //runMedianBackground(capture, (float)1.005, 1, cascades[0]);
 }
-
-Mat videoFaceDetection(Mat image, CascadeClassifier cascade) {
-    vector<Rect> faces;
-    Mat gray;
-    cvtColor(image, gray, COLOR_BGR2GRAY);
-    equalizeHist(gray, gray);
-    cascade.detectMultiScale(gray, faces, 1.1, 2, cv::CASCADE_SCALE_IMAGE, Size(30, 30));
-    for (int count = 0; count < (int)faces.size(); count++)
-        rectangle(image, faces[count], cv::Scalar(0, 0, 255), 2);
-    return image;
-}
-
 Mat* gaussianMixture(VideoCapture video, CascadeClassifier cascade) {
     Ptr<BackgroundSubtractor> pBackSub = createBackgroundSubtractorMOG2();
     Mat element(2, 2, CV_8U, Scalar(1));
@@ -74,15 +67,17 @@ Mat* gaussianMixture(VideoCapture video, CascadeClassifier cascade) {
         frame.copyTo(foreground, cleanedImage);
 
         if (faceDetectCounter == 5 || firstFaceDetected) {
-            faceDetect = videoFaceDetection(foreground, cascade);
+            Mat tmp = detectMaskedFaces(foreground, cascade);
+            if (!tmp.empty()) {
+                faceDetect = tmp;
+            }   
             faceDetectCounter = 0;
         }
 
         vector<Mat> vec = { frame, cleanedImage, foreground, faceDetect };
         Mat out = makeCanvas(vec, 600, 2);
-        imshow("GMM", out);
-        char c = waitKey(1);
-        masks[i] = foreground;
+        cout << out.size();
+        masks[i] = out;
         video >> frame;
         faceDetectCounter++;
         cout << "gmm: " << i << "\n";
@@ -90,12 +85,10 @@ Mat* gaussianMixture(VideoCapture video, CascadeClassifier cascade) {
     return masks;
 }
 
-
-
 void writeVideoToFile(Mat* frames, String fileName, int fps, int width, int height, int noOfFrames) {
     int codec = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
     cout << "h: " << height << " w: " << width;
-    VideoWriter output(fileName, codec, fps, Size(height, width));
+    VideoWriter output(fileName, codec, fps, Size(width, height), true);
     if (!output.isOpened()) {
         cout << "Could not open the output video file for write\n";
         return;
