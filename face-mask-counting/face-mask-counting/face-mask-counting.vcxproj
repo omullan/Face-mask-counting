@@ -145,6 +145,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DNNFaceDetection.cpp" />
     <ClCompile Include="Landmarks.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Histograms.cpp" />

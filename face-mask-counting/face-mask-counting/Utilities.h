@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include <iostream>
 #include <iostream>
-
-#define PI 3.14159265358979323846
+#include "opencv2/dnn.hpp"
 
 using namespace std;
 using namespace cv;
+using namespace cv::dnn;
 
 Mat makeCanvas(std::vector<cv::Mat>& vecMat, int windowHeight, int nRows);
-Mat* gaussianMixture(VideoCapture video, CascadeClassifier cascade);
+Mat* gaussianMixture(VideoCapture video, vector<CascadeClassifier> cascade);
 Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect>& faces);
 void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBin, CascadeClassifier cascade);
 void run();
@@ -25,5 +25,8 @@ void floodFillPostprocess(Mat& img, const Scalar& colorDiff);
 Mat videoFaceDetection(Mat image, CascadeClassifier cascade);
 Mat backProject(Mat samples, Mat input);
 vector<double> countPixels(Mat skinPixels, Rect topHalfFace, Rect bottomHalfFace);
-Mat detectMaskedFaces(Mat image, CascadeClassifier cascades/*, Mat skinSamples*/);
+Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples, Net net);
 void writeVideoToFile(Mat* frames, String fileName, int fps, int width, int height, int noOfFrames);
+Mat eyeDetector(Mat image, CascadeClassifier face_cascade);
+Net load();
+Mat DNNfaceDetect(Net net, Mat image, vector<Rect> &faces);

@@ -136,12 +136,14 @@ void MedianBackground::UpdateBackground(Mat current_frame)
 }
 
 //My code
-void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBin, CascadeClassifier cascade) {
+void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBin, vector<CascadeClassifier> cascade) {
 	Mat currentFrame;
 	video >> currentFrame;
 	Mat faceDetect = currentFrame.clone();
 	MedianBackground medianBackground(currentFrame, learningRate, valuesPerBin);
 	Mat medianBackgroundImage, medianForegroundImage;
+	Mat skinSamples = imread("Media/SkinSamples.jpg");
+	Net net = load();
 	int frameCount = 0;
 	int faceDetectCounter = 0;
 	while (!currentFrame.empty()) {
@@ -156,7 +158,7 @@ void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBi
 
 		String frameString = to_string(frameCount);
 		if (faceDetectCounter == 10) {
-			faceDetect = videoFaceDetection(medianForegroundImage, cascade);
+			faceDetect = detectMaskedFaces(medianForegroundImage, cascade, skinSamples, net);
 			faceDetectCounter = 0;
 		}
 		vector<Mat> vec = { currentFrame, medianBackgroundImage, medianForegroundImage, faceDetect };

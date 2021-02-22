@@ -4,7 +4,9 @@
 #include <list>
 #include <opencv2/face.hpp>
 #include <opencv2/xfeatures2d.hpp>
+#include <opencv2/dnn.hpp>
 
+using namespace cv::dnn;
 using namespace cv::face;
 using namespace cv::xfeatures2d;
 
@@ -26,7 +28,8 @@ void run() {
     String cascade_files[] = { "haarcascades/haarcascade_frontalface_alt2.xml",
                                 "haarcascades/haarcascade_eye.xml",
                                 "haarcascades/haarcascade_mcs_mouth.xml",
-                                "haarcascades/custom_mask_classifier.xml"};
+                                "haarcascades/haarcascade_eye_tree_eyeglasses.xml",
+                                "haarcascades/haarcascade_mcs_mouth.xml"};
     int number_of_cascades = sizeof(cascade_files) / sizeof(cascade_files[0]);
     for (int cascade_file_no = 0; (cascade_file_no < number_of_cascades); cascade_file_no++)
     {
@@ -42,31 +45,35 @@ void run() {
         
         cascades.push_back(cascade);
     }
-    
+    Net net = load();
+
     for (int i = 0; i < images.size(); i++) {
-        detectMaskedFaces(images[i], cascades[0]/*, skinSamples */);
+        Mat out = detectMaskedFaces(images[i], cascades, skinSamples, net);
+   
     }  
 }
 
-Mat detectMaskedFaces(Mat image, CascadeClassifier cascades/*, Mat skinSamples*/) {
+Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples, Net net) {
     vector<Rect> faces;
     int width, height, x, y;
-    Mat haarImage = haarFaceDetection(image, cascades, faces);
+    Mat haarImage = DNNfaceDetect(net, image, faces);
     if (faces.size() != 0) {
+        cout << faces.size();
         width = faces[0].width; height = faces[0].height; x = faces[0].x; y = faces[0].y;
         Rect topHalfFace(x, y, width, height / 2);
         Rect bottomHalfFace(x, y + (height / 2), width, height / 2);
 
-        Mat gray, backProjectedFace, colourThresholdSkin;
-        //backProjectedFace = backProject(skinSamples, haarImage);
-        //threshold(backProjectedFace, backProjectedFace, 5, 255, THRESH_BINARY);
+        Mat gray, backProjectedFace, colourThresholdSkin, mouth;
+        backProjectedFace = backProject(skinSamples, haarImage);
+        threshold(backProjectedFace, backProjectedFace, 5, 255, THRESH_BINARY);
         colourThresholdSkin = detectSkin(haarImage);
+        mouth = eyeDetector(haarImage, cascades[4]);
         vector<double> skinProbablities = countPixels(colourThresholdSkin, topHalfFace, bottomHalfFace);
         String s;
-        if (skinProbablities[0] > 50 && skinProbablities[1] < 50) {
+        if (skinProbablities[0] > 40 && skinProbablities[1] < 50) {
             s = "Masked";
         }
-        else if (skinProbablities[0] > 50 && skinProbablities[1] > 50) {
+        else if (skinProbablities[0] > 40 && skinProbablities[1] > 50) {
             s = "Unmasked";
         }
         else {
@@ -74,7 +81,11 @@ Mat detectMaskedFaces(Mat image, CascadeClassifier cascades/*, Mat skinSamples*/
         }
         rectangle(image, faces[0], Scalar(0, 0, 255), 2);
         putText(image, s, Point((faces[0].x + 20), (faces[0].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
-        vector<Mat> vec = {/* backProjectedFace ,*/ haarImage , image, colourThresholdSkin};
+        
+        vector<Mat> vec = {haarImage , image, colourThresholdSkin, mouth };
+        Mat out = makeCanvas(vec, 600, 2);
+        imshow("", out);
+        char c = waitKey();
         return image;
     }
 }
@@ -130,6 +141,24 @@ Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect> &faces)
     
     image.copyTo(interestArea, mask);
     return interestArea;
+}
+
+Mat eyeDetector(Mat image, CascadeClassifier face_cascade) {
+    Mat gray;
+    Mat out = image.clone();
+    if (image.channels() > 1) {
+        cvtColor(image, gray, COLOR_BGR2GRAY);
+    }
+    else {
+        gray = image.clone();
+    }
+    equalizeHist(gray, gray);
+    vector<Rect> eyes;
+    face_cascade.detectMultiScale(gray, eyes, 1.4, 2, cv::CASCADE_SCALE_IMAGE, Size(30, 30));
+    for (int i = 0; i < (int)eyes.size(); i++) {
+        rectangle(out, eyes[i], cv::Scalar(0, 0, 255), 2, 0);
+    }
+    return out;
 }
 
 /*
