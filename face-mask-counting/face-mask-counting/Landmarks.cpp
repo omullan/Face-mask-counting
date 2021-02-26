@@ -2,13 +2,6 @@
 #include <iostream>
 #include <fstream>
 #include <list>
-#include <opencv2/face.hpp>
-#include <opencv2/xfeatures2d.hpp>
-#include <opencv2/dnn.hpp>
-
-using namespace cv::dnn;
-using namespace cv::face;
-using namespace cv::xfeatures2d;
 
 void run() {
     String file_location = "Media/";
@@ -22,7 +15,6 @@ void run() {
     for (size_t i = 0; i < count; i++) {
         images.push_back(imread(fn[i]));
     }
-
 
     vector<CascadeClassifier> cascades;
     String cascade_files[] = { "haarcascades/haarcascade_frontalface_alt2.xml",
@@ -46,14 +38,32 @@ void run() {
         cascades.push_back(cascade);
     }
     Net net = load();
-
+    Ptr<Facemark> facemark = loadFacemarkModel();
+    int maskedCorrectCount = 0;
+    int unmaskedCorrectCount = 0;
     for (int i = 0; i < images.size(); i++) {
-        Mat out = detectMaskedFaces(images[i], cascades, skinSamples, net);
-   
+        String result;
+        Mat out = detectMaskedFaces(images[i], cascades, skinSamples, net, facemark, result);
+        if (i < 100) {
+            if (result == "Masked") {
+                maskedCorrectCount++;
+            }
+        }
+        else {
+            if (result == "Unmasked") {
+                unmaskedCorrectCount++;
+            }
+        }
     }  
+    cout << "\n" << "True postive rate masked: " << maskedCorrectCount;
+    cout << "\n" << "False negative rate masked: " << (100 - maskedCorrectCount);
+    cout << "\n" << "True postive rate unmasked: " << unmaskedCorrectCount;
+    cout << "\n" << "False negative rate unmasked: " << (100 - unmaskedCorrectCount);
+
 }
 
-Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples, Net net) {
+Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples, 
+    Net net, Ptr<Facemark> facemark, String &result) {
     vector<Rect> faces;
     int width, height, x, y;
     Mat haarImage = DNNfaceDetect(net, image, faces);
@@ -62,30 +72,47 @@ Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSam
         width = faces[0].width; height = faces[0].height; x = faces[0].x; y = faces[0].y;
         Rect topHalfFace(x, y, width, height / 2);
         Rect bottomHalfFace(x, y + (height / 2), width, height / 2);
+        double histMatchingScore = faceHistogram(image, topHalfFace, bottomHalfFace);
 
-        Mat gray, backProjectedFace, colourThresholdSkin, mouth;
+        Mat gray, backProjectedFace, colourThresholdSkin, facemarkImage;
+        facemarkImage = detectFacemarks(image, net, facemark);
         backProjectedFace = backProject(skinSamples, haarImage);
         threshold(backProjectedFace, backProjectedFace, 5, 255, THRESH_BINARY);
         colourThresholdSkin = detectSkin(haarImage);
-        mouth = eyeDetector(haarImage, cascades[4]);
         vector<double> skinProbablities = countPixels(colourThresholdSkin, topHalfFace, bottomHalfFace);
-        String s;
+        /*
         if (skinProbablities[0] > 40 && skinProbablities[1] < 50) {
-            s = "Masked";
+            result = "Masked";
         }
         else if (skinProbablities[0] > 40 && skinProbablities[1] > 50) {
-            s = "Unmasked";
+            result = "Unmasked";
         }
         else {
-            s = "Unknown";
+            result = "Unknown";
         }
+        */
+        if (histMatchingScore > 0.4) {
+            result = "Masked";
+        }
+        else {
+            result = "Unmasked";
+        }
+
         rectangle(image, faces[0], Scalar(0, 0, 255), 2);
-        putText(image, s, Point((faces[0].x + 20), (faces[0].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
-        
-        vector<Mat> vec = {haarImage , image, colourThresholdSkin, mouth };
+        putText(image, result, Point((faces[0].x + 20), (faces[0].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
+        /*
+        vector<Mat> vec = {haarImage , image, colourThresholdSkin, facemarkImage };
         Mat out = makeCanvas(vec, 600, 2);
         imshow("", out);
         char c = waitKey();
+        */
+        return image;
+    }
+    else {
+        /*
+        imshow("", image);
+        char c = waitKey();
+        */
         return image;
     }
 }
@@ -143,78 +170,33 @@ Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect> &faces)
     return interestArea;
 }
 
-Mat eyeDetector(Mat image, CascadeClassifier face_cascade) {
-    Mat gray;
-    Mat out = image.clone();
-    if (image.channels() > 1) {
-        cvtColor(image, gray, COLOR_BGR2GRAY);
-    }
-    else {
-        gray = image.clone();
-    }
-    equalizeHist(gray, gray);
-    vector<Rect> eyes;
-    face_cascade.detectMultiScale(gray, eyes, 1.4, 2, cv::CASCADE_SCALE_IMAGE, Size(30, 30));
-    for (int i = 0; i < (int)eyes.size(); i++) {
-        rectangle(out, eyes[i], cv::Scalar(0, 0, 255), 2, 0);
-    }
-    return out;
-}
-
-/*
-void detectFacemarks(vector<Mat> images, vector<CascadeClassifier> cascades) {
+Ptr<Facemark> loadFacemarkModel() {
     const string facemark_filename = "lbfmodel.yaml";
     Ptr<Facemark> facemark = createFacemarkLBF();
     facemark->loadModel(facemark_filename);
-    cout << "Loaded facemark LBF model" << endl;
-    vector<Rect> faces;
+    return facemark;
+}
 
-    for (int i = 0; i < images.size(); i++) {
-        faceDetector(images[i], faces, cascades[0]);
-        if (faces.size() != 0) {
-            cv::rectangle(images[0], faces[0], Scalar(255, 0, 0), 2);
-            vector<vector<Point2f> > shapes;
-            if (facemark->fit(images[i], faces, shapes)) {
-                drawFacemarks(images[i], shapes[0], cv::Scalar(0, 0, 255));
-                vector<Mat> vec = { images[i] };
-                Mat out = makeCanvas(vec, 600, 1);
-                imshow("", out);
-                char c = waitKey();
-            }
-        }
-        else {
-            vector<Mat> vec = { images[i] };
+Mat detectFacemarks(Mat image, Net net, Ptr<Facemark> facemark) {
+    vector<Rect> faces;
+    faceDetector(image, faces, net);
+    if (faces.size() != 0) {
+        cv::rectangle(image, faces[0], Scalar(255, 0, 0), 2);
+        vector<vector<Point2f> > shapes;
+        if (facemark->fit(image, faces, shapes)) {
+            drawFacemarks(image, shapes[0], cv::Scalar(0, 0, 255));
+            /*
+            vector<Mat> vec = { image };
             Mat out = makeCanvas(vec, 600, 1);
             imshow("", out);
             char c = waitKey();
-            cout << "Faces not detected. " + i << endl;
+            */
         }
     }
+    return image;
 }
 
-void faceDetector(const Mat& image, vector<Rect>& faces, CascadeClassifier& face_cascade) {
-    Mat gray;
-    if (image.channels() > 1) {
-        cvtColor(image, gray, COLOR_BGR2GRAY);
-    }
-    else {
-        gray = image.clone();
-    }
-    equalizeHist(gray, gray);
-    faces.clear();
-    face_cascade.detectMultiScale(gray, faces, 1.1, 2, cv::CASCADE_SCALE_IMAGE, Size(30, 30));
+void faceDetector(const Mat image, vector<Rect>& faces, Net net) {
+    DNNfaceDetect(net, image, faces);
 }
 
-void featureMatching(Mat trainImage) {
-    //surf implementation
-    int minHessian = 400;
-    Ptr<SURF> detector = SURF::create(minHessian);
-    std::vector<KeyPoint> keypoints;
-    detector->detect(trainImage, keypoints);
-    //-- Draw keypoints
-    Mat img_keypoints;
-    drawKeypoints(trainImage, keypoints, img_keypoints);
-    imshow("SURF Keypoints", img_keypoints);
-    char c = waitKey();
-}
-*/

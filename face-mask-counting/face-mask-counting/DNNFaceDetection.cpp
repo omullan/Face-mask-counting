@@ -3,6 +3,7 @@
 #include <fstream>
 #include <list>
 
+// code adapted from this source https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
 Net load() {
 	String file_location = "Media/haarcascades";

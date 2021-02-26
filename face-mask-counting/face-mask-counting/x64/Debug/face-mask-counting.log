@@ -1,3 +1,4 @@
-﻿  Landmarks.cpp
-C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(91): warning C4715: 'detectMaskedFaces': not all control paths return a value
+﻿  main.cpp
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\main.cpp(33,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\main.cpp(54,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   face-mask-counting.vcxproj -> C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\x64\Debug\face-mask-counting.exe

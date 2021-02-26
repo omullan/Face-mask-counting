@@ -179,3 +179,44 @@ Mat backProject(Mat samples, Mat input) {
 	Mat backProjectionProbabilities = histogram3D.BackProject(hlsImage);
 	return backProjectionProbabilities;
 }
+
+double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
+	Mat topChannels[3];
+	Mat bottomChannels[3];
+	Mat display;
+	split(input(topHalfFace), topChannels);
+	split(input(bottomHalfFace), bottomChannels);
+	vector<Mat> vec;
+	vector<OneDHistogram> hists;
+	vec.push_back(input(topHalfFace));
+	for (int i = 0; i < 3; i++) {
+		OneDHistogram tmp(topChannels[i], 256);
+		tmp.Draw(display);
+		vec.push_back(display);
+		hists.push_back(tmp);
+	}
+	vec.push_back(input(bottomHalfFace));
+	for (int i = 0; i < 3; i++) {
+		OneDHistogram tmp(bottomChannels[i], 256);
+		tmp.Draw(display);
+		vec.push_back(display);
+		hists.push_back(tmp);
+		
+	}
+	vector<double> scores;
+	for (int i = 0; i < 3; i++) {
+		Mat hist1, hist2;
+		normalize(hists[i].getHistogram(0), hist1, 1.0);
+		normalize(hists[i + 3].getHistogram(0), hist2, 1.0);
+		double matching_score = compareHist(hist1, hist2, HISTCMP_BHATTACHARYYA);
+		scores.push_back(matching_score);
+	}
+	cout << "\n "<<  scores[0] << " " << scores[1] << " " << scores[2] << "\n";
+	double avg = (scores[0] + scores[1] + scores[2]) / 3;
+	/*
+	Mat out = makeCanvas(vec, 600, 2);
+	imshow("", out);
+	char c = waitKey();
+	*/
+	return avg;
+};

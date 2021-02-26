@@ -144,6 +144,7 @@ void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBi
 	Mat medianBackgroundImage, medianForegroundImage;
 	Mat skinSamples = imread("Media/SkinSamples.jpg");
 	Net net = load();
+	Ptr<Facemark> facemark = loadFacemarkModel();
 	int frameCount = 0;
 	int faceDetectCounter = 0;
 	while (!currentFrame.empty()) {
@@ -158,7 +159,8 @@ void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBi
 
 		String frameString = to_string(frameCount);
 		if (faceDetectCounter == 10) {
-			faceDetect = detectMaskedFaces(medianForegroundImage, cascade, skinSamples, net);
+			String result;
+			faceDetect = detectMaskedFaces(medianForegroundImage, cascade, skinSamples, net, facemark, result);
 			faceDetectCounter = 0;
 		}
 		vector<Mat> vec = { currentFrame, medianBackgroundImage, medianForegroundImage, faceDetect };

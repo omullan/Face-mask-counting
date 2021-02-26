@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
         else cascades.push_back(cascade);
     }
     int frameCount = capture.get(CAP_PROP_FRAME_COUNT);
-    run();
-    /*
+
+    //run();
     Mat* frames = gaussianMixture(capture, cascades);
     
     writeVideoToFile(frames, "output3.avi", 30, 1044, 600, frameCount-5);
@@ -40,13 +40,15 @@ int main(int argc, char* argv[])
         imshow("", frames[i]);
         char c = waitKey(10);
     }
-   */
+
+   
     //runMedianBackground(capture, (float)1.005, 1, cascades[0]);
 }
 Mat* gaussianMixture(VideoCapture video, vector<CascadeClassifier> cascades) {
     Ptr<BackgroundSubtractor> pBackSub = createBackgroundSubtractorMOG2();
     Mat skinSamples = imread("Media/SkinSamples.jpg");
     Net net = load();
+    Ptr<Facemark> facemark = loadFacemarkModel();
     Mat element(2, 2, CV_8U, Scalar(1));
     Mat frame, mask;
     int frameCount = video.get(CAP_PROP_FRAME_COUNT);
@@ -73,7 +75,8 @@ Mat* gaussianMixture(VideoCapture video, vector<CascadeClassifier> cascades) {
         frame.copyTo(foreground, cleanedImage);
 
         if (faceDetectCounter == 5 || firstFaceDetected) {
-            Mat tmp = detectMaskedFaces(foreground, cascades, skinSamples, net);
+            String result;
+            Mat tmp = detectMaskedFaces(foreground, cascades, skinSamples, net, facemark, result);
             if (!tmp.empty()) {
                 faceDetect = tmp;
             }   
@@ -82,10 +85,8 @@ Mat* gaussianMixture(VideoCapture video, vector<CascadeClassifier> cascades) {
 
         vector<Mat> vec = { frame, cleanedImage, foreground, faceDetect };
         Mat out = makeCanvas(vec, 600, 2);
-        /*
         imshow("", out);
         char c = waitKey(1);
-        */
         cout << out.size();
         masks[i] = out;
         video >> frame;
