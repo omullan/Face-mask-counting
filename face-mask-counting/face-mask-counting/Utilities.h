@@ -3,6 +3,7 @@
 #include "opencv2/video.hpp"
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
+#include "opencv2/ml.hpp"
 #include <stdio.h>
 #include <iostream>
 #include <iostream>
@@ -14,11 +15,12 @@ using namespace cv::face;
 using namespace std;
 using namespace cv;
 using namespace cv::dnn;
+using namespace cv::ml;
 
 Mat makeCanvas(std::vector<cv::Mat>& vecMat, int windowHeight, int nRows);
-Mat* gaussianMixture(VideoCapture video, vector<CascadeClassifier> cascade);
+Mat* gaussianMixture(VideoCapture video);
 Mat haarFaceDetection(Mat image, CascadeClassifier cascade, vector<Rect>& faces);
-void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBin, CascadeClassifier cascade);
+void runMedianBackground(VideoCapture video, float learningRate, int valuesPerBin);
 void run();
 void faceDetector(const Mat image, vector<Rect>& faces, Net net);
 Mat detectFacemarks(Mat image, Net net, Ptr<Facemark> facemark);
@@ -28,11 +30,19 @@ void floodFillPostprocess(Mat& img, const Scalar& colorDiff);
 Mat videoFaceDetection(Mat image, CascadeClassifier cascade);
 Mat backProject(Mat samples, Mat input);
 vector<double> countPixels(Mat skinPixels, Rect topHalfFace, Rect bottomHalfFace);
-Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples,
-    Net net, Ptr<Facemark> facemark, String& result);
+Mat detectMaskedFaces(Mat image, Net net, vector<String>& result,  Ptr<Boost> boost);
 void writeVideoToFile(Mat* frames, String fileName, int fps, int width, int height, int noOfFrames);
 Mat eyeDetector(Mat image, CascadeClassifier face_cascade);
 Net load();
-Mat DNNfaceDetect(Net net, Mat image, vector<Rect> &faces);
+void DNNfaceDetect(Net net, Mat image, vector<Rect> &faces, float confidenceThreshold);
 double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace);
 Ptr<Facemark> loadFacemarkModel();
+void gradientImage(Mat input, Rect topHalfFace, Rect bottomHalfFace);
+Mat LBP(Mat img);
+void LBPFace(Mat input, Rect topHalfFace, Rect bottomHalfFace);
+template <typename _Tp> void ELBP(const Mat& src, Mat& dst, int radius, int neighbors);
+void train_svm_hog_descriptor();
+void test_svm_classifier(vector<Mat> images, int testSize);
+bool boosted_mask_classifier(Ptr<Boost> boost, Mat input);
+void extract();
+Mat* runWithoutBM(VideoCapture video);

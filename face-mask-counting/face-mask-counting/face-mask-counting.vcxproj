@@ -149,6 +149,7 @@
     <ClCompile Include="Landmarks.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Histograms.cpp" />
+    <ClCompile Include="extract.cpp" />
     <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="Video.cpp" />
   </ItemGroup>

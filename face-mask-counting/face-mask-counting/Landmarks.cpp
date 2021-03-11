@@ -6,106 +6,113 @@
 void run() {
     String file_location = "Media/";
     vector<String> fn;
-    glob(file_location + "Ground Truth/np", fn, false);
+    glob(file_location + "Ground Truth/Datasets/MAFA/test-images/images", fn, false);
     vector<Mat> images;
     size_t count = fn.size();
-    Mat skinSamples = imread(file_location + "SkinSamples.jpg");
 
     cout << count + "\n";
     for (size_t i = 0; i < count; i++) {
         images.push_back(imread(fn[i]));
+        cout << i << "\n";
     }
-
-    vector<CascadeClassifier> cascades;
-    String cascade_files[] = { "haarcascades/haarcascade_frontalface_alt2.xml",
-                                "haarcascades/haarcascade_eye.xml",
-                                "haarcascades/haarcascade_mcs_mouth.xml",
-                                "haarcascades/haarcascade_eye_tree_eyeglasses.xml",
-                                "haarcascades/haarcascade_mcs_mouth.xml"};
-    int number_of_cascades = sizeof(cascade_files) / sizeof(cascade_files[0]);
-    for (int cascade_file_no = 0; (cascade_file_no < number_of_cascades); cascade_file_no++)
-    {
-        CascadeClassifier cascade;
-        string filename(file_location);
-        filename.append(cascade_files[cascade_file_no]);
-        
-        if (!cascade.load(filename))
-        {
-            cout << "Cannot load cascade file: " << filename << endl;
-            return;
-        }
-        
-        cascades.push_back(cascade);
+    Ptr<Boost> boost = Boost::create();
+    boost = StatModel::load<Boost>("ADABOOST_TEST_3.xml");
+    if (boost->empty()) {
+        cout << "could not load SVM";
+        return;
     }
     Net net = load();
-    Ptr<Facemark> facemark = loadFacemarkModel();
     int maskedCorrectCount = 0;
     int unmaskedCorrectCount = 0;
+    int maskedFaceNotFoundCount = 0;
+    int unmaskedFaceNotFoundCount = 0;
     for (int i = 0; i < images.size(); i++) {
-        String result;
-        Mat out = detectMaskedFaces(images[i], cascades, skinSamples, net, facemark, result);
-        if (i < 100) {
-            if (result == "Masked") {
-                maskedCorrectCount++;
+        vector<String> result;
+        Mat out = detectMaskedFaces(images[i], net, result, boost);
+        if(result.size() != 0) {
+            if (i < 100) {
+                if (result[0] == "Masked") {
+                    maskedCorrectCount++;
+                }
+            }
+            else {
+                if (result[0] == "Unmasked") {
+                    unmaskedCorrectCount++;
+                }
             }
         }
         else {
-            if (result == "Unmasked") {
-                unmaskedCorrectCount++;
+            if (i < 100) {
+                maskedFaceNotFoundCount++;
+            }
+            else {
+                unmaskedFaceNotFoundCount++;
             }
         }
     }  
     cout << "\n" << "True postive rate masked: " << maskedCorrectCount;
     cout << "\n" << "False negative rate masked: " << (100 - maskedCorrectCount);
+    cout << "\n" << "Masked faces not found: " << maskedFaceNotFoundCount;
     cout << "\n" << "True postive rate unmasked: " << unmaskedCorrectCount;
     cout << "\n" << "False negative rate unmasked: " << (100 - unmaskedCorrectCount);
+    cout << "\n" << "Unasked faces not found: " << unmaskedFaceNotFoundCount << "\n";
+
 
 }
 
-Mat detectMaskedFaces(Mat image, vector<CascadeClassifier> cascades, Mat skinSamples, 
-    Net net, Ptr<Facemark> facemark, String &result) {
+Mat detectMaskedFaces(Mat image, Net net, vector<String> &result, Ptr<Boost> boost) {
     vector<Rect> faces;
     int width, height, x, y;
-    Mat haarImage = DNNfaceDetect(net, image, faces);
+    float confidenceThreshold = 0.5;
+    DNNfaceDetect(net, image, faces, confidenceThreshold);
     if (faces.size() != 0) {
-        cout << faces.size();
-        width = faces[0].width; height = faces[0].height; x = faces[0].x; y = faces[0].y;
-        Rect topHalfFace(x, y, width, height / 2);
-        Rect bottomHalfFace(x, y + (height / 2), width, height / 2);
-        double histMatchingScore = faceHistogram(image, topHalfFace, bottomHalfFace);
+        cout << faces.size() << "\n";
+        for (int i = 0; i < faces.size(); i++) {
+            Mat haarImage = image(faces[i]);
+            cout << faces.size();
+            width = faces[i].width; height = faces[i].height; x = faces[i].x; y = faces[i].y;
+            Rect topHalfFace(x, y, width, height / 2);
+            Rect bottomHalfFace(x, y + (height / 2), width, height / 2);
+            //double histMatchingScore = faceHistogram(image, topHalfFace, bottomHalfFace);
+            //gradientImage(image, topHalfFace, bottomHalfFace);
+            //LBPFace(image, topHalfFace, bottomHalfFace);
+            bool is_mask = boosted_mask_classifier(boost, haarImage);
+            //Mat gray, colourThresholdSkin;
+            //colourThresholdSkin = detectSkin(haarImage);
+            //vector<double> skinProbablities = countPixels(colourThresholdSkin, topHalfFace, bottomHalfFace);
+            if (is_mask) {
+                result.push_back("Masked");
+            }
+            else {
+                result.push_back("Unmasked");
+            }
 
-        Mat gray, backProjectedFace, colourThresholdSkin, facemarkImage;
-        facemarkImage = detectFacemarks(image, net, facemark);
-        backProjectedFace = backProject(skinSamples, haarImage);
-        threshold(backProjectedFace, backProjectedFace, 5, 255, THRESH_BINARY);
-        colourThresholdSkin = detectSkin(haarImage);
-        vector<double> skinProbablities = countPixels(colourThresholdSkin, topHalfFace, bottomHalfFace);
-        /*
-        if (skinProbablities[0] > 40 && skinProbablities[1] < 50) {
-            result = "Masked";
+            /*
+            if (skinProbablities[0] > 40 && skinProbablities[1] < 50) {
+                result = "Masked";
+            
+            }
+            else if (skinProbablities[0] > 40 && skinProbablities[1] > 50) {
+                result = "Unmasked";
+            }
+            if (histMatchingScore > 0.4) {
+                result = "Masked";
+                cout << result;
+            }
+            else {
+                result = "Unmasked";
+                cout << result;
+            }
+            */
+            rectangle(image, faces[i], Scalar(0, 0, 255), 2);
+            putText(image, result[i], Point((faces[i].x + 20), (faces[i].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
+            
+            vector<Mat> vec = {haarImage , image};
+            Mat out = makeCanvas(vec, 600, 2);
+            imshow("", out);
+            char c = waitKey();
+    
         }
-        else if (skinProbablities[0] > 40 && skinProbablities[1] > 50) {
-            result = "Unmasked";
-        }
-        else {
-            result = "Unknown";
-        }
-        */
-        if (histMatchingScore > 0.4) {
-            result = "Masked";
-        }
-        else {
-            result = "Unmasked";
-        }
-
-        rectangle(image, faces[0], Scalar(0, 0, 255), 2);
-        putText(image, result, Point((faces[0].x + 20), (faces[0].y + 20)), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 255), 4);
-        /*
-        vector<Mat> vec = {haarImage , image, colourThresholdSkin, facemarkImage };
-        Mat out = makeCanvas(vec, 600, 2);
-        imshow("", out);
-        char c = waitKey();
-        */
         return image;
     }
     else {
@@ -197,6 +204,30 @@ Mat detectFacemarks(Mat image, Net net, Ptr<Facemark> facemark) {
 }
 
 void faceDetector(const Mat image, vector<Rect>& faces, Net net) {
-    DNNfaceDetect(net, image, faces);
+    float confidenceThreshold = 0.5;
+    DNNfaceDetect(net, image, faces, confidenceThreshold);
 }
 
+bool boosted_mask_classifier(Ptr<Boost> boost, Mat input) {
+    HOGDescriptor hog(Size(50, 50), Size(10, 10), Size(5, 5), Size(10, 10),
+        9, 1, -1, HOGDescriptor::L2Hys, 0.2,
+        false, HOGDescriptor::DEFAULT_NLEVELS, false);
+    Mat image;
+    resize(input, image, Size(100, 100));
+    vector<float> descriptors;
+    hog.compute(image, descriptors, Size(8, 8));
+    Mat testDescriptor = Mat::zeros(1, descriptors.size(), CV_32F);
+    for (int j = 0; j < descriptors.size(); j++) {
+        testDescriptor.at<float>(0, j) = descriptors[j];
+    }
+    float label = boost->predict(testDescriptor);
+    //float label = svm->predict(testDescriptor);
+    //cout << label << "\n";
+    
+    bool slabel = false;
+    if (label > 0) {
+        slabel = true;
+    }
+    return slabel;
+    
+}
