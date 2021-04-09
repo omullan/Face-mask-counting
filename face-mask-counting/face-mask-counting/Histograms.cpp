@@ -180,76 +180,53 @@ Mat backProject(Mat samples, Mat input) {
 	return backProjectionProbabilities;
 }
 
-void gradientImage(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
-	cvtColor(input, input, COLOR_BGR2GRAY);
-	vector<Mat> results;
-	Mat topFace = input(topHalfFace);
-	Mat bottomFace = input(bottomHalfFace);
-	Mat gx, gy, mag, angle, d1,d2,d3,d4;
-	Sobel(topFace, gx, CV_32F, 1, 0, 1);
-	Sobel(topFace, gy, CV_32F, 0, 1, 1);
-	cartToPolar(gx, gy, mag, angle, 1);
-	results.push_back(mag);
-	results.push_back(angle);
-
-	OneDHistogram maghist(mag, 256);
-	OneDHistogram anglehist(angle, 256);
-	maghist.Draw(d1);
-	anglehist.Draw(d2);
-	results.push_back(d1);
-	results.push_back(d2);
-
-	Mat gx2, gy2, mag2, angle2;
-	Sobel(bottomFace, gx2, CV_32F, 1, 0, 1);
-	Sobel(bottomFace, gy2, CV_32F, 0, 1, 1);
-	cartToPolar(gx2, gy2, mag2, angle2, 1);
-	results.push_back(mag2);
-	results.push_back(angle2);
-
-	OneDHistogram maghist2(mag2, 256);
-	OneDHistogram anglehist2(angle2, 256);
-	maghist2.Draw(d3);
-	anglehist2.Draw(d4);
-	results.push_back(d3);
-	results.push_back(d4);
-
-	Mat out = makeCanvas(results, 600, 4);
-	imshow("", out);
-	char c = waitKey();
-}
-
-void LBPFace(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
-	vector<Mat> results;
-	Mat topFace = input(topHalfFace);
-	Mat bottomFace = input(bottomHalfFace);
-	Mat LBPtop = LBP(topFace);
-	Mat LBPbottom = LBP(bottomFace);
-	OneDHistogram topLBPFace(LBPtop, 256);
-	OneDHistogram bottomLBPFace(LBPbottom, 256);
-	Mat LBPtopHist, LBPbottomHist;
-	topLBPFace.Draw(LBPtopHist);
-	bottomLBPFace.Draw(LBPbottomHist);
-	results.push_back(LBPtop);
-	//results.push_back(topFace);
-	results.push_back(LBPtopHist);
-	results.push_back(LBPbottom);
-	//results.push_back(bottomFace);
-	results.push_back(LBPbottomHist);
-	Mat out = makeCanvas(results, 600,2);
-	imshow("", out);
-	char c = waitKey();
+double getHistogram(Mat input1, Mat input2) {
+	Mat channels1[3];
+	Mat channels2[3];
+	vector<Mat> vec;
+	split(input1, channels1);
+	split(input2, channels2);
+	Mat display;
+	vector<OneDHistogram> hists;
+	vec.push_back(input1);
+	for (int i = 0; i < 3; i++) {
+		OneDHistogram tmp(channels1[i], 256);
+		tmp.Draw(display);
+		vec.push_back(display);
+		hists.push_back(tmp);
+	}
+	vec.push_back(input2);
+	for (int i = 0; i < 3; i++) {
+		OneDHistogram tmp(channels2[i], 256);
+		tmp.Draw(display);
+		vec.push_back(display);
+		hists.push_back(tmp);
+	}
+	
+	vector<double> scores;
+	for (int i = 0; i < 3; i++) {
+		Mat hist1, hist2;
+		normalize(hists[i].getHistogram(0), hist1, 1.0);
+		normalize(hists[i + 3].getHistogram(0), hist2, 1.0);
+		double matching_score = compareHist(hist1, hist2, HISTCMP_BHATTACHARYYA);
+		scores.push_back(matching_score);
+	}
+	double avg = (scores[0] + scores[1] + scores[2]) / 3;
+	//cout << avg << "\n";
+	return avg;
 }
 	
 
-double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
+double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace, vector<Mat>& vec) {
 	Mat topChannels[3];
 	Mat bottomChannels[3];
 	Mat display;
 	Mat image_HSV;
+	vec.clear();
 	cvtColor(input, image_HSV, COLOR_BGR2HSV);
 	split(image_HSV(topHalfFace), topChannels);
 	split(image_HSV(bottomHalfFace), bottomChannels);
-	vector<Mat> vec;
+	
 	vector<OneDHistogram> hists;
 	vec.push_back(input(topHalfFace));
 	for (int i = 0; i < 3; i++) {
@@ -274,7 +251,7 @@ double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
 		double matching_score = compareHist(hist1, hist2, HISTCMP_BHATTACHARYYA);
 		scores.push_back(matching_score);
 	}
-	cout << "\n "<<  scores[0] << " " << scores[1] << " " << scores[2] << "\n";
+	//cout << "\n "<<  scores[0] << " " << scores[1] << " " << scores[2] << "\n";
 	double avg = (scores[0] + scores[1] + scores[2]) / 3;
 	/*
 	Mat out = makeCanvas(vec, 600, 2);
@@ -285,24 +262,4 @@ double faceHistogram(Mat input, Rect topHalfFace, Rect bottomHalfFace) {
 	return scores[0];
 };
 
-//LBP & ELBP code adapted from here https://www.bytefish.de/blog/local_binary_patterns.html
-Mat LBP(Mat img) {
-	Mat dst = Mat::zeros(img.rows - 2, img.cols - 2, CV_8UC1);
-	for (int i = 1; i < img.rows - 1; i++) {
-		for (int j = 1; j < img.cols - 1; j++) {
-			uchar center = img.at<uchar>(i, j);
-			unsigned char code = 0;
-			code |= ((img.at<uchar>(i - 1, j - 1)) > center) << 7;
-			code |= ((img.at<uchar>(i - 1, j)) > center) << 6;
-			code |= ((img.at<uchar>(i - 1, j + 1)) > center) << 5;
-			code |= ((img.at<uchar>(i, j + 1)) > center) << 4;
-			code |= ((img.at<uchar>(i + 1, j + 1)) > center) << 3;
-			code |= ((img.at<uchar>(i + 1, j)) > center) << 2;
-			code |= ((img.at<uchar>(i + 1, j - 1)) > center) << 1;
-			code |= ((img.at<uchar>(i, j - 1)) > center) << 0;
-			dst.at<uchar>(i - 1, j - 1) = code;
-		}
-	}
-	return dst;
-}
 

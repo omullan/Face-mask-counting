@@ -1,3 +1,22 @@
 ﻿  Landmarks.cpp
-C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(219,66): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(42,43): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(133,39): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(159,142): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(165,142): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(171,141): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(177,141): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(187,130): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(247,39): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(253,137): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(257,141): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(261,138): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(303,27): warning C4244: 'initializing': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=double
+          ]
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(321,167): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(327,137): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(328,164): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\face-mask-counting\Landmarks.cpp(433,66): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   face-mask-counting.vcxproj -> C:\Users\omull\Desktop\College work\4th Year\fyp\FYP\face-mask-counting\x64\Debug\face-mask-counting.exe

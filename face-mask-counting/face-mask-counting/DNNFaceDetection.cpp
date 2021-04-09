@@ -20,7 +20,7 @@ void DNNfaceDetect(Net net, Mat image, vector<Rect> &faces, float confidenceThre
 	if (!image.empty()) {
 		Size imageSize = image.size();
 		cout << imageSize.height + " :" << imageSize.width + "\n";
-		Mat inputBlob = cv::dnn::blobFromImage(image, 1.0, Size(300, 300), Scalar(104, 117, 123), false, false);
+		Mat inputBlob = blobFromImage(image, 1.0, Size(300, 300), Scalar(104, 117, 123), false, false);
 
 		net.setInput(inputBlob, "data");
 
