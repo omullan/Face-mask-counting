@@ -1,3 +1,3 @@
 #Final Year Project
 
-Initial commit
+Project using OpenCV and C++ to detect faces and classify whether subjects are wearing face masks or not.
